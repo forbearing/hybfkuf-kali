@@ -8,9 +8,9 @@
 
 ## 密码和端口
 
-- ssh 在 k8s 中的 nodePort 端口默认为 30022/tcp
-- noVNC 在 k8s 中的 nodePort 端口默认为 30081/tcp
-- xrdp 在 k8s 中的 nodePort 端口为 31389/tcp
+- ssh 在 k8s 中的 nodePort 端口默认为 30022/tcp，默认密码为 `toor`
+- noVNC 在 k8s 中的 nodePort 端口默认为 30081/tcp，默认密码为 `toor`
+- xrdp 在 k8s 中的 nodePort 端口为 31389/tcp，默认用户名为 `root`，密码为 `toor`
 
 ## 截图
 
