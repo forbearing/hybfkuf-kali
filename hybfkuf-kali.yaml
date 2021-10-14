@@ -1,0 +1,184 @@
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: hybfkuf-kali-data
+  labels:
+    app: hybfkuf-kali
+spec:
+  accessModes:
+  - ReadWriteOnce
+  - ReadWriteMany
+  storageClassName: nfs-sc
+  resources:
+    requests:
+      storage: 8Gi
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hybfkuf-kali-config
+  labels:
+    app: hybfkuf-kali
+data:
+  # ===== locales
+  # ref: https://wiki.debian.org/Locale
+  ## chinese
+  #LANG: 'zh_CN.UTF-8'
+  #LANGUAGE: 'zh_CN:zh'
+  #LC_CTYPE: 'zh_CN.UTF-8'
+  #LC_COLLATE: 'zh_CN.UTF-8'
+  #LC_MESSAGES: 'zh_CN.UTF-8'
+  #LC_ADDRESS: 'zh_CN.UTF-8'
+  #LC_IDENTIFICATION: 'zh_CN.UTF-8'
+  #LC_MEASUREMENT: 'zh_CN.UTF-8'
+  #LC_MONETARY: 'zh_CN.UTF-8'
+  #LC_NAME: 'zh_CN.UTF-8'
+  #LC_NUMERIC: 'zh_CN.UTF-8'
+  #LC_PAPER: 'zh_CN.UTF-8'
+  #LC_TELEPHONE: 'zh_CN.UTF-8'
+  #LC_TIME: 'zh_CN.UTF-8'
+  ## english
+  #LANG: 'en_US.UTF-8'
+  #LANGUAGE: 'zh_CN:zh'
+  #LC_CTYPE: 'en_US.UTF-8'
+  #LC_COLLATE: 'en_US.UTF-8'
+  #LC_MESSAGES: 'en_US.UTF-8'
+  #LC_ADDRESS: 'en_US.UTF-8'
+  #LC_IDENTIFICATION: 'en_US.UTF-8'
+  #LC_MEASUREMENT: 'en_US.UTF-8'
+  #LC_MONETARY: 'en_US.UTF-8'
+  #LC_NAME: 'en_US.UTF-8'
+  #LC_NUMERIC: 'en_US.UTF-8'
+  #LC_PAPER: 'en_US.UTF-8'
+  #LC_TELEPHONE: 'en_US.UTF-8'
+  #LC_TIME: 'en_US.UTF-8'
+  # ===== timezone
+  TZ: 'Asia/Shanghai'
+  # ===== root password
+  ROOT_PASSWD: 'toor'
+  # ===== vnc password
+  VNC_PASSWD: 'toor'
+  # ===== vnc geometry
+  VNC_GEOMETRY: '1600x900'
+  
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hybfkuf-kali
+  labels:
+    app: hybfkuf-kali
+spec:
+  selector:
+    app: hybfkuf-kali
+  type: NodePort
+  ports:
+  - name: ssh
+    port: 22
+    targetPort: ssh
+    nodePort: 30022
+  - name: xrdp
+    port: 3389
+    targetPort: xrdp
+    nodePort: 31389
+  - name: novnc
+    port: 8081
+    targetPort: 8081
+    nodePort: 30081
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hybfkuf-kali
+  labels:
+    app: hybfkuf-kali
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hybfkuf-kali
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: hybfkuf-kali
+    spec:
+      hostname: lizardman
+      restartPolicy: Always
+      #terminationGracePeriodSeconds: 10
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchLabels:
+                app: hybfkuf-kali
+            topologyKey: kubernetes.io/hostname
+      containers:
+      - name: hybfkuf-kali
+        image: registry.cn-shanghai.aliyuncs.com/hybfkuf/hybfkuf-kali:v1.0
+        imagePullPolicy: Always
+        lifecycle:
+          preStop:
+            exec:
+              command: ['bash', '-c', '/clean']
+        ports:
+        - name: ssh
+          containerPort: 22
+        - name: xrdp
+          containerPort: 3389
+        - name: novnc
+          containerPort: 8081
+        envFrom:
+        - configMapRef:
+            name: hybfkuf-kali-config
+        securityContext:
+          privileged: true
+        #resources:
+        #  limits:
+        #    cpu: 2
+        #    memory: 4Gi
+        startupProbe:
+          tcpSocket:
+            port: ssh
+          periodSeconds: 3
+          timeoutSeconds: 3
+          failureThreshold: 100
+        livenessProbe:
+          tcpSocket:
+            port: ssh
+        readinessProbe:
+          tcpSocket:
+            port: ssh
+        volumeMounts:
+        - name: data
+          mountPath: /root
+        - name: x11-unix
+          mountPath: /tmp/.X11-unix
+        - name: shm
+          mountPath: /dev/shm
+        - name: snd
+          mountPath: /dev/snd
+        - name: docker-sock
+          mountPath: /var/run/docker.sock
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: hybfkuf-kali-data
+      - name: x11-unix
+        hostPath:
+          path: /tmp/.X11-unix
+          type: Directory
+      - name: shm
+        emptyDir:
+          medium: Memory
+          sizeLimit: 4Gi
+      - name: snd
+        hostPath:
+          path: /dev/snd
+          type: Directory
+      - name: docker-sock
+        hostPath:
+          path: /var/run/docker.sock
+          type: Socket
