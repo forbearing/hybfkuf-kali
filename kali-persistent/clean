@@ -1,0 +1,11 @@
+#!/usr/bin/env sh
+
+pgrep x11vnc | xargs kill &> /dev/null
+pgrep Xtightvnc | xargs kill &> /dev/null
+service xrdp stop
+
+file=$(lsof -c Xorg |grep .X11-unix | awk '{print $(NF-1)}' | awk -F'/' '{print $NF}' | uniq)
+rm -rf /tmp/.X11-unix/${file}
+
+file=$(lsof -c Xtightvnc |grep .X11-unix | awk '{print $(NF-1)}' | awk -F'/' '{print $NF}' | uniq)
+rm -rf /tmp/.X11-unix/${file}

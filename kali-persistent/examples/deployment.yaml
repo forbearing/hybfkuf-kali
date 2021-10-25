@@ -1,26 +1,21 @@
 ---
 apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: hybfkuf-kali-data
-  labels:
-    app: hybfkuf-kali
-spec:
-  accessModes:
-  - ReadWriteOnce
-  - ReadWriteMany
-  storageClassName: nfs-sc
-  resources:
-    requests:
-      storage: 8Gi
----
-apiVersion: v1
 kind: ConfigMap
 metadata:
   name: hybfkuf-kali-config
   labels:
     app: hybfkuf-kali
 data:
+  #LC_ADDRESS: 'zh_CN.UTF-8'
+  #LC_IDENTIFICATION: 'zh_CN.UTF-8'
+  #LC_MEASUREMENT: 'zh_CN.UTF-8'
+  #LC_MONETARY: 'zh_CN.UTF-8'
+  #LC_NAME: 'zh_CN.UTF-8'
+  #LC_NUMERIC: 'zh_CN.UTF-8'
+  #LC_PAPER: 'zh_CN.UTF-8'
+  #LC_TELEPHONE: 'zh_CN.UTF-8'
+  #LC_TIME: 'zh_CN.UTF-8'
+  
   # ===== locales
   # ref: https://wiki.debian.org/Locale
   ## chinese
@@ -38,6 +33,7 @@ data:
   #LC_PAPER: 'zh_CN.UTF-8'
   #LC_TELEPHONE: 'zh_CN.UTF-8'
   #LC_TIME: 'zh_CN.UTF-8'
+
   ## english
   #LANG: 'en_US.UTF-8'
   #LANGUAGE: 'zh_CN:zh'
@@ -53,6 +49,7 @@ data:
   #LC_PAPER: 'en_US.UTF-8'
   #LC_TELEPHONE: 'en_US.UTF-8'
   #LC_TIME: 'en_US.UTF-8'
+
   # ===== timezone
   TZ: 'Asia/Shanghai'
   # ===== root password
@@ -77,7 +74,7 @@ spec:
   - name: ssh
     port: 22
     targetPort: ssh
-    nodePort: 30022
+    nodePort: 30023
   - name: xrdp
     port: 3389
     targetPort: xrdp
@@ -107,6 +104,8 @@ spec:
       annotations:
         sidecar.istio.io/inject: "false"
     spec:
+      #nodeName: sh-u20-k8s-t3-worker1
+      nodeName: worker1
       hostname: lizardman
       restartPolicy: Always
       #terminationGracePeriodSeconds: 10
@@ -117,14 +116,42 @@ spec:
               matchLabels:
                 app: hybfkuf-kali
             topologyKey: kubernetes.io/hostname
+      initContainers:
+      - name: init-system
+        image: registry.cn-shanghai.aliyuncs.com/hybfkuf/hybfkuf-kali:v1.0
+        imagePullPolicy: Always
+        securityContext:
+          privileged: true
+        command:
+        - 'sh'
+        - '-c'
+        - '/srv/init-system.sh'
+        volumeMounts:
+        - name: boot
+          mountPath: /._boot
+        - name: etc
+          mountPath: /._etc
+        - name: root
+          mountPath: /._root
+        - name: run
+          mountPath: /._run
+        - name: usr
+          mountPath: /._usr
+        - name: var
+          mountPath: /._var
+        - name: init-system-script
+          mountPath: /srv/init-system.sh
+          subPath: init-system.sh
       containers:
       - name: hybfkuf-kali
         image: registry.cn-shanghai.aliyuncs.com/hybfkuf/hybfkuf-kali:v1.0
+        #image: kalilinux/kali-rolling
+        #image: alpine
         imagePullPolicy: Always
         lifecycle:
           preStop:
             exec:
-              command: ['bash', '-c', '/clean']
+              command: ['sh', '-c', '/clean']
         ports:
         - name: ssh
           containerPort: 22
@@ -144,8 +171,6 @@ spec:
         startupProbe:
           tcpSocket:
             port: ssh
-          periodSeconds: 3
-          timeoutSeconds: 3
           failureThreshold: 100
         livenessProbe:
           tcpSocket:
@@ -154,8 +179,18 @@ spec:
           tcpSocket:
             port: ssh
         volumeMounts:
-        - name: data
+        - name: boot
+          mountPath: /boot
+        - name: etc
+          mountPath: /etc
+        - name: root
           mountPath: /root
+        - name: run
+          mountPath: /run
+        - name: usr
+          mountPath: /usr
+        - name: var
+          mountPath: /var
         - name: x11-unix
           mountPath: /tmp/.X11-unix
         - name: shm
@@ -165,9 +200,24 @@ spec:
         - name: docker-sock
           mountPath: /var/run/docker.sock
       volumes:
-      - name: data
+      - name: boot
         persistentVolumeClaim:
-          claimName: hybfkuf-kali-data
+          claimName: hybfkuf-kali-boot
+      - name: etc
+        persistentVolumeClaim:
+          claimName: hybfkuf-kali-etc
+      - name: root
+        persistentVolumeClaim:
+          claimName: hybfkuf-kali-root
+      - name: run
+        persistentVolumeClaim:
+          claimName: hybfkuf-kali-run
+      - name: usr
+        persistentVolumeClaim:
+          claimName: hybfkuf-kali-usr
+      - name: var
+        persistentVolumeClaim:
+          claimName: hybfkuf-kali-var
       - name: x11-unix
         hostPath:
           path: /tmp/.X11-unix
@@ -184,3 +234,7 @@ spec:
         hostPath:
           path: /var/run/docker.sock
           type: Socket
+      - name: init-system-script
+        configMap:
+          name: init-system-script
+          defaultMode: 0700

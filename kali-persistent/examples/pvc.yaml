@@ -1,0 +1,90 @@
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: hybfkuf-kali-etc
+  labels:
+    app: hybfkuf-kali
+spec:
+  accessModes:
+  - ReadWriteOnce
+  - ReadWriteMany
+  storageClassName: nfs-sc
+  resources:
+    requests:
+      storage: 1G
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: hybfkuf-kali-boot
+  labels:
+    app: hybfkuf-kali
+spec:
+  accessModes:
+  - ReadWriteOnce
+  - ReadWriteMany
+  storageClassName: nfs-sc
+  resources:
+    requests:
+      storage: 500Mi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: hybfkuf-kali-root
+  labels:
+    app: hybfkuf-kali
+spec:
+  accessModes:
+  - ReadWriteOnce
+  - ReadWriteMany
+  storageClassName: nfs-sc
+  resources:
+    requests:
+      storage: 8Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: hybfkuf-kali-run
+  labels:
+    app: hybfkuf-kali
+spec:
+  accessModes:
+  - ReadWriteOnce
+  - ReadWriteMany
+  storageClassName: nfs-sc
+  resources:
+    requests:
+      storage: 500Mi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: hybfkuf-kali-usr
+  labels:
+    app: hybfkuf-kali
+spec:
+  accessModes:
+  - ReadWriteOnce
+  - ReadWriteMany
+  storageClassName: nfs-sc
+  resources:
+    requests:
+      storage: 60G
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: hybfkuf-kali-var
+  labels:
+    app: hybfkuf-kali
+spec:
+  accessModes:
+  - ReadWriteOnce
+  - ReadWriteMany
+  storageClassName: nfs-sc
+  resources:
+    requests:
+      storage: 20G
